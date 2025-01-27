@@ -17,11 +17,15 @@ dapr init
 
 # run
 
+## ping
+
 ```shell
 python3 -m venv ping/.venv
 source ping/.venv/bin/activate
 python3 -m pip install -r ping/requirements.txt
 ```
+
+## pong
 
 ```shell
 dapr run --metrics-port 45267  --app-id ping python3 ping/app.py --app-port 8001 -- uvicorn --host 0.0.0.0 --port 8001
