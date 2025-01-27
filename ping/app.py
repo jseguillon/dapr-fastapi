@@ -45,7 +45,7 @@ def cloud_event_handler(event_data: CloudEventModel):
 @app.post("/ping", summary="Ping endpoint"  )
 def get_my_data(message: PingPong):
     print(f"received POST ping with message: {message}")
-    print(f"Submitting pong event")
+    print(f"Submitting ping event")
     event_data_dict = {
         'say': f'hello world from ping: {message.say}'
     }
@@ -54,6 +54,21 @@ def get_my_data(message: PingPong):
         topic_name="ping",
         data=json.dumps(event_data_dict),
         data_content_type="application/json"
+    )
+
+@app.post("/pingSpecial", summary="Ping special endpoint")
+def get_my_data(message: PingPong):
+    print(f"received POST pingSpecial with message: {message}")
+    print(f"Submitting ping event with special type for pong to route it")
+    event_data_dict = {
+        'say': f'hello world from ping: {message.say}'
+    }
+    c.publish_event(
+        pubsub_name="pubsub",
+        topic_name="ping",
+        data=json.dumps(event_data_dict),
+        data_content_type="application/json",
+        publish_metadata= {'cloudevent.type': 'special'}
     )
 
 @app.get("/healthz")

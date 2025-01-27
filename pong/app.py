@@ -1,9 +1,11 @@
 import json
 import uvicorn
-from fastapi import Body, FastAPI
-from dapr.ext.fastapi import DaprApp
-from pydantic import BaseModel
+from fastapi import Body, FastAPI, Header, Request
+from pydantic import BaseModel  
+
 from dapr.clients import DaprClient
+
+from fastapi.responses import JSONResponse
 
 class PingPong(BaseModel):
     say: str
@@ -31,18 +33,57 @@ class CloudEventModel(BaseModel):
     type: str    
     
 app = FastAPI()
-dapr_app = DaprApp(app)
 c = DaprClient()
 
 # Handle events sent with CloudEvents
-@dapr_app.subscribe(pubsub='pubsub', topic='ping')
-def cloud_event_handler(event_data: CloudEventModel):
-        print(f"Received cloud event on ping topic: {event_data}")
+# @dapr_app.subscribe(pubsub='pubsub', topic='ping')
+# def cloud_event_handler(event_data: CloudEventModel):
+#         print(f"Received cloud event on ping topic: {event_data}")
+
+# TODO: try event filters and path 
+@app.get('/dapr/subscribe')
+def subscribe():
+    print("returning subscriptions", flush=True)
+    subscriptions = [
+      {
+          'pubsubname': 'pubsub',
+          'topic': 'ping',
+          'routes': {
+            'rules': [
+              {
+                "match": "event.type == 'special'",
+                "path": "/events/pubsub/pingSpecial"
+              } 
+            ],
+            'default' : '/events/pubsub/ping'
+        }
+      }
+    ]
+
+
+    #     'route': '/events/pubsub/ping', 
+    #     'metadata': {}
+
+    return JSONResponse(content=subscriptions)
+
+# Ping event
+@app.post('/events/pubsub/ping')
+def prout(event: CloudEventModel = Body(...)):
+    print(f"Received ping event {event}")
+
+    return JSONResponse(content={"success": "true"})
+
+# Special ping event
+@app.post('/events/pubsub/pingSpecial')
+def prout(event: CloudEventModel = Body(...)):
+    print(f"Received special ping event {event}")
+
+    return JSONResponse(content={"success": "true"})
 
 # In case of POST /pong: emit event on pong topic
 @app.post("/pong")
 def get_my_data(message: PingPong):
-    print(f"received POST pong with message: {message}")
+    print(f"receivedu POST pong with message: {message}")
     print(f"Submitting pong event")
     event_data_dict = {
         'say': f'hello world from pong: {message.say}'
@@ -55,7 +96,10 @@ def get_my_data(message: PingPong):
     )
     
 @app.get("/healthz")
-async def healthcheck():
+async def healthcheck(request: Request):
+    headers = request.headers
+    for header, value in headers.items():
+        print(f"{header}: {value}")
     return "Healthy!"
 
 # Argument parsing
@@ -67,3 +111,4 @@ args, unknown = parser.parse_known_args()
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=args.port, log_level="trace")
+    app.run()
