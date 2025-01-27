@@ -1,14 +1,19 @@
 # grafana and prometheus
+
+```shell
 docker run \
   --net=host \
   -v ./prometheus.yml:/etc/prometheus/prometheus.yml \
   prom/prometheus --config.file=/etc/prometheus/prometheus.yml --web.listen-address=:8082
 
 docker run -d --net=host --name=grafana grafana/grafana
+```
 
 # init
 
+```shell
 dapr init
+```
 
 # run
 
